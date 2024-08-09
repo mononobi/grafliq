@@ -22,6 +22,16 @@ class QuotationManager:
     def __repr__(self) -> str:
         return str(self)
 
+    @property
+    def original_value(self):
+        """
+        gets the original value which is wrapped inside this object.
+
+        :returns: the original value.
+        """
+
+        return self._value
+
     def _perform_quotation(self, value) -> str:
         """
         performs the required quotation on the value.
@@ -55,6 +65,12 @@ class QuotationManager:
                 processed_values.append(self.perform_quotation(item))
             return '[' + ', '.join(str(item) for item in processed_values) + ']'
 
+        if isinstance(value, dict):
+            processed_values = {}
+            for name, item in value.items():
+                processed_values[name] = self.perform_quotation(item)
+            return '{' + ', '.join(f'{name}: {str(item)}' for name, item in processed_values.items()) + '}'
+
         return self._perform_quotation(value)
 
 
@@ -63,15 +79,6 @@ class NoQuote(QuotationManager):
     a helper class that can be used to wrap function arguments that should
     not be quoted in the final graphql query.
     """
-
-    def __init__(self, value):
-        """
-        initializes an instance of NoQuote.
-
-        :param value: the actual value not to be quoted.
-        """
-
-        super().__init__(value)
 
     def _perform_quotation(self, value) -> str:
         """
@@ -95,15 +102,6 @@ class Quote(QuotationManager):
     """
     a helper class that can be used to force arguments to be quoted in the final graphql query.
     """
-
-    def __init__(self, value):
-        """
-        initializes an instance of Quote.
-
-        :param value: the actual value to be quoted.
-        """
-
-        super().__init__(value)
 
     def _perform_quotation(self, value) -> str:
         """
@@ -130,15 +128,6 @@ class DefaultQuote(QuotationManager):
     - every other field type will be quoted.
     """
 
-    def __init__(self, value):
-        """
-        initializes an instance of DefaultQuote.
-
-        :param value: the actual value to be quoted.
-        """
-
-        super().__init__(value)
-
     def _perform_quotation(self, value) -> str:
         """
         performs the required quotation on the value.
@@ -157,26 +146,62 @@ class DefaultQuote(QuotationManager):
         return str(Quote(value))
 
 
-class NestedField:
+class CustomizableField:
+    """
+    a helper class to be used to define graphql query fields which
+    also accept arguments.
+    """
+
+    def __init__(self, name: str, **arguments):
+        """
+        initializes an instance of CustomizableField.
+
+        :param str name: field name.
+        :keyword arguments: any arguments which this field accepts in graphql api.
+        """
+
+        self._name = name
+        self._arguments = arguments
+
+    def __str__(self) -> str:
+        all_args = ''
+        if self._arguments:
+            args = []
+            for name, value in self._arguments.items():
+                prepared_argument = prepare_argument(name, value)
+                args.append(prepared_argument)
+
+            all_args = '(' + ', '.join(args) + ')'
+
+        return f'{self._name}{all_args}'
+
+    def __repr__(self) -> str:
+        return str(self)
+
+
+class NestedField(CustomizableField):
     """
     a helper class to be used to define graphql query fields which
     contain another object instead of a single value.
+    this field type also accepts arguments.
     """
 
-    def __init__(self, name: str, *fields):
+    def __init__(self, name: str, *fields, **arguments):
         """
         initializes an instance of NestedField.
 
         :param str name: nested field name.
-        :param str | NestedField fields: field names of the nested field.
+        :param str | CustomizableField | NestedField fields: field names of the nested field.
+        :keyword arguments: any arguments which this field accepts in graphql api.
         """
 
-        self._name = name
+        super().__init__(name, **arguments)
+
         self._fields = fields
 
     def __str__(self) -> str:
         return Template('${name} {${fields}}').substitute(
-            name=self._name, fields=' '.join(str(item) for item in self._fields))
+            name=super().__str__(), fields=' '.join(str(item) for item in self._fields))
 
     def __repr__(self) -> str:
         return str(self)
@@ -203,13 +228,13 @@ class Query:
         self._arguments = {}
         self._graphql = graphql
 
-    def __call__(self, *fields: str | NestedField, **arguments):
+    def __call__(self, *fields: str | CustomizableField | NestedField, **arguments):
         """
         by calling the Query object it will be added to GraphQL object's queries.
 
         the GraphQL object will be returned.
 
-        :param str | NestedField fields: field names of the query.
+        :param str | CustomizableField | NestedField fields: field names of the query.
         :keyword arguments: any arguments which this operation accepts in graphql api.
         :rtype: GraphQL
         """
@@ -225,18 +250,6 @@ class Query:
     def __repr__(self) -> str:
         return str(self)
 
-    def _prepare_argument(self, name: str, value) -> str:
-        """
-        prepares the given argument to be put in the graphql query.
-
-        :param str name: argument name.
-        :param value: argument value.
-        :rtype: str
-        """
-
-        value = self.prepare_value(value)
-        return f'{name}: {value}'
-
     def generate(self, child: str = None) -> str:
         """
         generates the corresponding graphql query for this query object.
@@ -249,7 +262,7 @@ class Query:
         all_args = ''
         if self._arguments:
             for name, value in self._arguments.items():
-                prepared_argument = self._prepare_argument(name, value)
+                prepared_argument = prepare_argument(name, value)
                 args.append(prepared_argument)
 
             all_args = '(' + ', '.join(args) + ')'
@@ -258,26 +271,39 @@ class Query:
             child = ''
 
         if self._fields and child:
-            raise Exception(f'Query [{self._name}] cannot have both fields and child.')
+            raise Exception(f'Query [{self._name}] cannot have both fields and child operation.')
 
         all_fields = ''
         if self._fields:
             all_fields = ' '.join(str(field) for field in self._fields)
             all_fields = '{' + all_fields + '}'
 
-        result = '{' + f'{self._name} {all_args}{all_fields or child}' + '}'
+        result = '{' + f'{self._name}{all_args}{all_fields or child}' + '}'
         return result
 
-    @staticmethod
-    def prepare_value(value) -> str:
-        """
-        prepares the given value to be put in the graphql query.
 
-        :param value: the value to be prepared.
-        :rtype str
-        """
+def prepare_argument(name: str, value) -> str:
+    """
+    prepares the given argument to be put in the graphql query.
 
-        if isinstance(value, QuotationManager):
-            return str(value)
+    :param str name: argument name.
+    :param value: argument value.
+    :rtype: str
+    """
 
-        return str(DefaultQuote(value))
+    value = prepare_value(value)
+    return f'{name}: {value}'
+
+
+def prepare_value(value) -> str:
+    """
+    prepares the given value to be put in the graphql query.
+
+    :param value: the value to be prepared.
+    :rtype str
+    """
+
+    if isinstance(value, QuotationManager):
+        return str(value)
+
+    return str(DefaultQuote(value))

@@ -31,7 +31,7 @@ class GraphQL:
     NOTE 3:
     both `.execute()` and `.generate()` functions can be configured to reset the current
     object after a successful call, so that the same object can be used for new queries.
-    but `str(graphql)` usage, does not support resting the current object.
+    but `str(graphql)` usage, does not support resetting the current object.
 
     -------------------------------------------------------------------------------------
 
@@ -69,7 +69,7 @@ class GraphQL:
       }
     }
 
-    we can achieve this using all the following examples:
+    we can accomplish this through any of the following approaches:
 
     -------------------------------------------------------------------------------------
 
@@ -179,7 +179,7 @@ class GraphQL:
         self._reset_on_generate = reset_on_generate
         self._queries: list[Query] = []
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Query:
         """
         this method is overridden to be able to support available graphql operations on the fly.
 
@@ -188,6 +188,7 @@ class GraphQL:
         any missing attribute will be interpreted as a query name in graphql.
 
         :param str name: name of the attribute (graphql operation).
+        :rtype: Query
         """
 
         return Query(name, self)
@@ -224,7 +225,7 @@ class GraphQL:
 
         self._queries.append(query)
 
-    def query(self, _query_name: str, *fields: str, **arguments):
+    def query(self, _query_name: str, *fields: str, **arguments) -> "GraphQL":
         """
         creates a query and adds it to the available queries.
 
@@ -234,7 +235,7 @@ class GraphQL:
         queries using a generic method instead of attributes (which is the preferred way).
 
         :param str _query_name: query name (the name of the operation in graphql api).
-        :param str | NestedField fields: field names of the query.
+        :param str | CustomizableField | NestedField fields: field names of the query.
         :keyword arguments: any arguments which this operation accepts in graphql api.
         :rtype: GraphQL
         """
