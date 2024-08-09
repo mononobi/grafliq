@@ -253,7 +253,7 @@ class ReleaseManager:
         makes release files.
         """
 
-        self._execute_command('cd ../.. ; {python} setup.py sdist bdist_wheel'
+        self._execute_command('cd .. ; {python} setup.py sdist bdist_wheel'
                               .format(python=self.PYTHON_VERSION))
 
     def _upload(self):
@@ -261,7 +261,7 @@ class ReleaseManager:
         uploads the release files to pypi.
         """
 
-        self._execute_command('cd ../.. ; {python} -m twine upload dist/*'
+        self._execute_command('cd .. ; {python} -m twine upload dist/*'
                               .format(python=self.PYTHON_VERSION))
 
     def _clear(self):
@@ -269,7 +269,7 @@ class ReleaseManager:
         clears released files.
         """
 
-        self._execute_command('cd ../.. ; rm -r build/ dist/ ; cd src ; rm -r {pypi}.egg-info/'
+        self._execute_command('cd .. ; rm -r build/ dist/ ; cd src ; rm -r {pypi}.egg-info/'
                               .format(pypi=self.PYPI_PACKAGE_NAME))
 
     def _execute_command(self, command):
