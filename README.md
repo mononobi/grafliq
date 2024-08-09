@@ -21,7 +21,7 @@ for `mutations` and `subscriptions` and there will be none in the foreseeable fu
 
 Let's say we want to have a GraphQL query with the following structure:
 
-```json
+```
 {
   category(name: "household-appliances") {
     electronics {
