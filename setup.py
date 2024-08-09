@@ -43,7 +43,8 @@ setup(
     long_description=README,
     long_description_content_type='text/markdown',
     keywords=('graphql python grafliq graphql-query pythonic graphql-client '
-              'graphql-tool pythonic-graphql-tool graphql-for-humans'),
+              'graphql-tool pythonic-graphql-tool graphql-for-humans pythonic-graphql '
+              'graphql-query-builder graphql-queries graphql-query-generator'),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
