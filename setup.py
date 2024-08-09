@@ -38,8 +38,8 @@ setup(
     author_email='mononobi@gmail.com',
     maintainer='mono',
     maintainer_email='mononobi@gmail.com',
-    description='A simple and pythonic way of querying graphql endpoints '
-                'without having to do any string manipulations.',
+    description='A simple and pythonic way to query GraphQL endpoints '
+                'without having to do any string manipulation.',
     long_description=README,
     long_description_content_type='text/markdown',
     keywords=('graphql python grafliq graphql-query pythonic graphql-client '
