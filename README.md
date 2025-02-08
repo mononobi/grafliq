@@ -7,6 +7,10 @@ Instead of building your query by manipulating and concatenating strings, you bu
 your queries using function calls, eliminating all the complications and problems 
 associated with string manipulation, and making maintenance an easy task.
 
+Another big advantage of Grafliq is that it does not require you to replicate the entire GraphQL server schema on your client. 
+That would make your client wrongly aware of your server and add another layer of time-consuming maintenance to your code. 
+The client is only aware of the query and will only need to change the query if the server query structure changes.
+
 ## Important note
 Grafliq only supports the `query` operation of GraphQL, there is no support 
 for `mutations` and `subscriptions` and there will be none in the foreseeable future.
